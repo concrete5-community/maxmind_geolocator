@@ -1,0 +1,17 @@
+{
+	"name" : "concrete5/maxmind_geolocator",
+	"description" : "Add a geolocator that uses a local MaxMind database",
+	"type" : "concrete5-package",
+	"license" : "MIT",
+	"minimum-stability": "stable",
+	"authors" : [{
+			"name" : "Michele Locati",
+			"email" : "michele@locati.it",
+			"homepage" : "https://mlocati.github.io",
+			"role" : "Author"
+		}
+	],
+	"require": {
+		"geoip2/geoip2" : "^2.6.0"
+	}
+}
