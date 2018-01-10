@@ -1,4 +1,5 @@
 <?php
+
 namespace MaxmindGeolocator\Updater;
 
 use Concrete\Core\Application\Application;
@@ -53,13 +54,6 @@ class Updater
     protected $configuration;
 
     /**
-     * The HTTP client.
-     *
-     * @var HttpClient
-     */
-    protected $httpClient;
-
-    /**
      * The cache to be used.
      *
      * @var Cache|null
@@ -70,13 +64,12 @@ class Updater
      * Initialize the instance.
      *
      * @param Configuration $configuration the updater configuration
-     * @param HttpClient $httpClient the HTTP client
+     * @param Application $application the Application instance
      */
-    public function __construct(Configuration $configuration, Application $application, HttpClient $httpClient)
+    public function __construct(Configuration $configuration, Application $application)
     {
         $this->configuration = $configuration;
         $this->application = $application;
-        $this->httpClient = $httpClient;
     }
 
     /**
@@ -128,6 +121,82 @@ class Updater
     }
 
     /**
+     * Check if a GeoIP2 database needs to be updated: if so, update it.
+     *
+     * @throws \Zend\Http\Client\Exception\RuntimeException in case of HTTP communication problems
+     *
+     * @return bool
+     */
+    public function update()
+    {
+        $filename = $this->configuration->getDatabasePath();
+        if ($filename === '') {
+            throw new InvalidConfigurationArgument('databasePath', $filename);
+        }
+        if (@is_file($filename)) {
+            $fileMd5 = @md5_file($filename);
+            if ($fileMd5 === false) {
+                throw new InvalidConfigurationArgument('databasePath', $filename);
+            }
+        } else {
+            $fileMd5 = static::MD5_INEXISTING_FILE;
+        }
+        //$fileMd5 = strrev($fileMd5);
+        $challengeMd5 = $this->getChallengeMd5();
+        $userId = $this->configuration->getUserId();
+        if ($userId === null) {
+            $c = $this->configuration;
+            $userId = $c::NO_USER_ID;
+        }
+        $tempDirectory = $this->application->make(VolatileDirectory::class);
+        $tempFile = $tempDirectory->getPath() . '/downloaded';
+        $response = $this->performRequest(
+            'app/update_secure',
+            "db_md5={$fileMd5}&challenge_md5={$challengeMd5}&user_id={$userId}&edition_id=" . rawurlencode($this->configuration->getProductId()),
+            $tempFile
+        );
+        $contentType = $response->getHeaders()->get('Content-Type');
+        if ($fileMd5 === static::MD5_INEXISTING_FILE) {
+            $updateNeeded = true;
+        } else {
+            $fileMd5Header = $response->getHeaders()->get('X-Database-MD5');
+            if ($fileMd5Header instanceof HeaderInterface) {
+                $updateNeeded = strcasecmp($fileMd5Header->getFieldValue(), $fileMd5) !== 0;
+            } else {
+                if ($contentType instanceof ContentType && $contentType->getMediaType() === 'text/plain') {
+                    $responseText = trim($response->getBody());
+                    if ($responseText !== static::NO_NEW_UPDATES_RESPONSE) {
+                        throw new ZendRuntimeException($responseText);
+                    }
+                    $updateNeeded = false;
+                } else {
+                    $updateNeeded = true;
+                }
+            }
+        }
+        if ($updateNeeded === false) {
+            $result = false;
+        } else {
+            if ($contentType instanceof ContentType && $contentType->getMediaType() !== 'application/gzip') {
+                throw new ZendRuntimeException($contentType->getMediaType());
+            }
+            $downloadSize = is_file($tempFile) ? @filesize($tempFile) : 0;
+            if ($downloadSize < 1) {
+                throw new \Exception(t('No data downloaded'));
+            }
+            $contentLengthHeader = $response->getHeaders()->get('Content-Length');
+            if ($contentLengthHeader instanceof ContentLength && $contentLengthHeader->getFieldValue() != $downloadSize) {
+                throw new \Exception(t('Invalid size of downloaded data: expected %1$s bytes, received %2$s', $contentLengthHeader->getFieldValue(), $downloadSize));
+            }
+            $this->decodeGzipFile($tempFile, $filename, $tempDirectory);
+            $result = true;
+        }
+        unset($response);
+
+        return $result;
+    }
+
+    /**
      * Perform a request for a resource.
      *
      * @param string $path
@@ -144,15 +213,16 @@ class Updater
         if ($querystring !== '' && $querystring !== '?') {
             $uri .= '?' . ltrim($querystring, '?');
         }
-        $this->httpClient->reset();
+        $httpClient = $this->application->make(HttpClient::class);
+        $httpClient->reset();
         if ($saveToFilename) {
-            $this->httpClient->setOptions([
+            $httpClient->setOptions([
                 'storeresponse' => false,
                 'outputstream' => $saveToFilename,
             ]);
         }
-        $this->httpClient->setUri($uri);
-        $response = $this->httpClient->send();
+        $httpClient->setUri($uri);
+        $response = $httpClient->send();
         if (!$response->isSuccess()) {
             $failureReason = $response->getReasonPhrase();
             $contentType = $response->getHeaders()->get('Content-Type');
@@ -318,81 +388,5 @@ class Updater
         if (@rename($unzippedFilename, $uncompressedFilename) !== true) {
             throw new \Exception('Failed to move decompressed file');
         }
-    }
-
-    /**
-     * Check if a GeoIP2 database needs to be updated: if so, update it.
-     *
-     * @throws \Zend\Http\Client\Exception\RuntimeException in case of HTTP communication problems
-     *
-     * @return bool
-     */
-    public function update()
-    {
-        $filename = $this->configuration->getDatabasePath();
-        if ($filename === '') {
-            throw new InvalidConfigurationArgument('databasePath', $filename);
-        }
-        if (@is_file($filename)) {
-            $fileMd5 = @md5_file($filename);
-            if ($fileMd5 === false) {
-                throw new InvalidConfigurationArgument('databasePath', $filename);
-            }
-        } else {
-            $fileMd5 = static::MD5_INEXISTING_FILE;
-        }
-        //$fileMd5 = strrev($fileMd5);
-        $challengeMd5 = $this->getChallengeMd5();
-        $userId = $this->configuration->getUserId();
-        if ($userId === null) {
-            $c = $this->configuration;
-            $userId = $c::NO_USER_ID;
-        }
-        $tempDirectory = $this->application->make(VolatileDirectory::class);
-        /* @var VolatileDirectory $tempDirectory */
-        $tempFile = $tempDirectory->getPath() . '/downloaded';
-        $response = $this->performRequest(
-            'app/update_secure',
-            "db_md5={$fileMd5}&challenge_md5={$challengeMd5}&user_id={$userId}&edition_id=" . rawurlencode($this->configuration->getProductId()),
-            $tempFile
-        );
-        if ($fileMd5 === static::MD5_INEXISTING_FILE) {
-            $updateNeeded = true;
-        } else {
-            $fileMd5Header = $response->getHeaders()->get('X-Database-MD5');
-            if ($fileMd5Header instanceof HeaderInterface) {
-                $updateNeeded = strcasecmp($fileMd5Header->getFieldValue(), $fileMd5) !== 0;
-            } else {
-                $contentType = $response->getHeaders()->get('Content-Type');
-                if ($contentType instanceof ContentType && $contentType->getMediaType() === 'text/plain') {
-                    $responseText = trim($response->getBody());
-                    if ($responseText !== static::NO_NEW_UPDATES_RESPONSE) {
-                        throw new ZendRuntimeException($responseText);
-                    }
-                    $updateNeeded = false;
-                } else {
-                    $updateNeeded = true;
-                }
-            }
-        }
-        if ($updateNeeded === false) {
-            $result = false;
-        } else {
-            if ($contentType instanceof ContentType && $contentType->getMediaType() !== 'application/gzip') {
-                throw new ZendRuntimeException($contentType->getMediaType());
-            }
-            $downloadSize = is_file($tempFile) ? @filesize($tempFile) : 0;
-            if ($downloadSize < 1) {
-                throw new \Exception(t('No data downloaded'));
-            }
-            $contentLengthHeader = $response->getHeaders()->get('Content-Length');
-            if ($contentLengthHeader instanceof ContentLength && $contentLengthHeader->getFieldValue() != $downloadSize) {
-                throw new \Exception(t('Invalid size of downloaded data: expected %1$s bytes, received %2$s', $contentLengthHeader->getFieldValue(), $downloadSize));
-            }
-            $this->decodeGzipFile($tempFile, $filename, $tempDirectory);
-            $result = true;
-        }
-
-        return $result;
     }
 }
