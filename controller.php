@@ -14,7 +14,7 @@ class Controller extends Package
 {
     protected $pkgHandle = 'maxmind_geolocator';
 
-    protected $appVersionRequired = '8.2.2b2';
+    protected $appVersionRequired = '8.3.0';
 
     protected $pkgVersion = '0.9.0';
 
@@ -24,7 +24,7 @@ class Controller extends Package
 
     public function getPackageName()
     {
-        return t('MaxMind GeoIP2 geolocator.');
+        return t('MaxMind GeoIP2 geolocator');
     }
 
     public function getPackageDescription()
@@ -49,18 +49,18 @@ class Controller extends Package
         parent::upgrade();
     }
 
-    private function installXml()
-    {
-        $contentImporter = $this->app->make(ContentImporter::class);
-        $contentImporter->importContentFile($this->getPackagePath() . '/install.xml');
-    }
-
     public function on_start()
     {
         $this->registerServiceProvider();
         if ($this->app->isRunThroughCommandLineInterface()) {
             $this->registerConsoleCommands();
         }
+    }
+
+    private function installXml()
+    {
+        $contentImporter = $this->app->make(ContentImporter::class);
+        $contentImporter->importContentFile($this->getPackagePath() . '/install.xml');
     }
 
     /**
