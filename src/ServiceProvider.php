@@ -1,4 +1,5 @@
 <?php
+
 namespace MaxmindGeolocator;
 
 use Concrete\Core\Application\Application;
@@ -6,6 +7,8 @@ use Concrete\Core\Foundation\Service\Provider;
 use Concrete\Core\Geolocator\GeolocatorService;
 use Concrete\Core\Package\PackageService;
 use GeoIp2\Database\Reader;
+use MaxmindGeolocator\Exception\InvalidConfigurationArgument;
+use MaxmindGeolocator\Exception\MaxMindDatabaseUnavailable;
 use MaxmindGeolocator\Updater\Configuration;
 use MaxmindGeolocator\Updater\Updater;
 
@@ -23,7 +26,6 @@ class ServiceProvider extends Provider
     {
         $this->app->bind(Configuration::class, function (Application $app) {
             $glService = $app->make(GeolocatorService::class);
-            /* @var GeolocatorService $glService */
             $geolocator = $glService->getByHandle('maxmind_geoip2');
             $data = $geolocator->getGeolocatorConfiguration();
             $configuration = new Configuration();
@@ -66,16 +68,14 @@ class ServiceProvider extends Provider
             $configuration = $app->make(Configuration::class);
             $databasePath = $configuration->getDatabasePath();
             if ($databasePath === '') {
-                throw new \Exception('The MaxMind database path is not configured');
+                throw new InvalidConfigurationArgument('DatabasePath');
             }
             if (!is_file($databasePath)) {
-                throw new \Exception('The MaxMind database file has not yet been downloaded');
+                throw new MaxMindDatabaseUnavailable('The MaxMind database file has not yet been downloaded');
             }
             if (!class_exists(Reader::class, true)) {
                 $packageService = $app->make(PackageService::class);
-                /* @var PackageService $packageService */
                 $package = $packageService->getClass('maxmind_geolocator');
-                /* @var \Concrete\Package\MaxmindGeolocator\Controller $package */
                 require_once $package->getPackagePath() . '/vendor/autoload.php';
             }
 
