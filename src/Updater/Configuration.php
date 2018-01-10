@@ -1,4 +1,5 @@
 <?php
+
 namespace MaxmindGeolocator\Updater;
 
 use MaxmindGeolocator\Exception\InvalidConfigurationArgument;

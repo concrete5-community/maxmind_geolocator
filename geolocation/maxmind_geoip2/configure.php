@@ -63,7 +63,7 @@ if (is_string($postedProductId)) {
         [
             'class' => 'launch-tooltip',
             'data-html' => 'true',
-            'title' => t('Use a relative path to save under the %s directory', '<code>' . DIRNAME_APPLICATION . DIRECTORY_SEPARATOR . 'files</code>')
+            'title' => t('Use a relative path to save under the %s directory', '<code>' . DIRNAME_APPLICATION . DIRECTORY_SEPARATOR . 'files</code>'),
         ]
     ) ?>
     <?= $form->text('maxmindgl-databasepath', str_replace('/', DIRECTORY_SEPARATOR, $configuration['database-path']), ['required' => 'required']) ?>
@@ -85,7 +85,7 @@ if (is_string($postedProductId)) {
 
     <div class="form-group">
         <?= $form->label('maxmindgl-protocol', t('Protocol to be used to download the MaxMind database')) ?>
-        <?= $form->select('maxmindgl-protocol', ['http' => 'http','https' => 'https'], $configuration['protocol'], ['required' => 'required']) ?>
+        <?= $form->select('maxmindgl-protocol', ['http' => 'http', 'https' => 'https'], $configuration['protocol'], ['required' => 'required']) ?>
     </div>
     
     <div class="form-group">

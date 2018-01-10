@@ -1,4 +1,5 @@
 <?php
+
 namespace MaxmindGeolocator\Exception;
 
 class InvalidConfigurationArgument extends Exception

@@ -1,4 +1,5 @@
 <?php
+
 namespace Concrete\Package\MaxmindGeolocator\Job;
 
 use Concrete\Core\Job\Job;
@@ -36,7 +37,7 @@ class UpdateMaxmindDatabase extends Job
     {
         $app = Application::getFacadeApplication();
         $updater = $app->make(Updater::class);
-        // @var Updater $updater */
+
         return $updater->update() ? t('The database has been updated.') : t('The database was already up-to-date.');
     }
 }

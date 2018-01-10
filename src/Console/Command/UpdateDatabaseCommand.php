@@ -1,4 +1,5 @@
 <?php
+
 namespace MaxmindGeolocator\Console\Command;
 
 use Concrete\Core\Console\Command;
