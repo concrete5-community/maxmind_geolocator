@@ -1,4 +1,5 @@
 <?php
+
 namespace Concrete\Package\MaxmindGeolocator\Geolocator\MaxmindGeoip2;
 
 use Concrete\Core\Error\ErrorList\ErrorList;
@@ -10,6 +11,8 @@ use GeoIp2\Model\City;
 use GeoIp2\Model\Country;
 use GeoIp2\Model\Enterprise;
 use IPLib\Address\AddressInterface;
+use MaxmindGeolocator\Exception\InvalidConfigurationArgument;
+use MaxmindGeolocator\Exception\MaxMindDatabaseUnavailable;
 use Symfony\Component\HttpFoundation\ParameterBag;
 
 class Controller extends GeolocatorController
@@ -79,26 +82,42 @@ class Controller extends GeolocatorController
     /**
      * {@inheritdoc}
      *
+     * @see \Concrete\Core\Geolocator\GeolocatorController::geolocateIPAddress()
+     */
+    public function geolocateIPAddress(AddressInterface $address)
+    {
+        $result = parent::geolocateIPAddress($address);
+        $exception = $result->getInnerException();
+        if ($exception instanceof InvalidConfigurationArgument) {
+            $result->setError(GeolocationResult::ERR_LIBRARYSPECIFIC, $exception->getMessage(), $exception);
+        } elseif ($exception instanceof MaxMindDatabaseUnavailable) {
+            $result->setError(GeolocationResult::ERR_LIBRARYSPECIFIC, $exception->getMessage(), $exception);
+        }
+
+        return $result;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
      * @see GeolocatorController::performGeolocation()
      */
     protected function performGeolocation(AddressInterface $address)
     {
         $reader = $this->app->make(Reader::class);
-        /* @var Reader $reader */
         $metadata = $reader->metadata();
-        /* @var \MaxMind\Db\Reader\Metadata $metadata */
+        $result = new GeolocationResult();
         try {
             if (strpos($metadata->databaseType, 'City') !== false) {
-                $result = $this->cityToGeolocationResult($reader->city((string) $address));
+                $this->cityToGeolocationResult($reader->city((string) $address), $result);
             } elseif (strpos($metadata->databaseType, 'Country') !== false) {
-                $result = $this->countryToGeolocationResult($reader->country((string) $address));
+                $this->countryToGeolocationResult($reader->country((string) $address), $result);
             } elseif (strpos($metadata->databaseType, 'Enterprise') !== false) {
-                $result = $this->enterpriseToGeolocationResult($reader->enterprise((string) $address));
+                $this->enterpriseToGeolocationResult($reader->enterprise((string) $address), $result);
             } else {
-                throw new \Exception('Unsupported MaxMind database type: ' . $metadata->databaseType);
+                $result->setError(GeolocationResult::ERR_LIBRARYSPECIFIC, t('Unsupported MaxMind database type: %s', $metadata->databaseType));
             }
         } catch (AddressNotFoundException $foo) {
-            $result = new GeolocationResult();
         }
 
         return $result;
@@ -106,14 +125,11 @@ class Controller extends GeolocatorController
 
     /**
      * @param City $data
-     *
-     * @return GeolocationResult
+     * @param GeolocationResult $result
      */
-    private function cityToGeolocationResult(City $data)
+    private function cityToGeolocationResult(City $data, GeolocationResult $result)
     {
-        $result = new GeolocationResult();
-
-        return $result
+        $result
             ->setCityName($data->city->name)
             ->setStateProvinceCode($data->mostSpecificSubdivision->isoCode)
             ->setStateProvinceName($data->mostSpecificSubdivision->name)
@@ -127,14 +143,11 @@ class Controller extends GeolocatorController
 
     /**
      * @param City $data
-     *
-     * @return GeolocationResult
+     * @param GeolocationResult $result
      */
-    private function countryToGeolocationResult(Country $data)
+    private function countryToGeolocationResult(Country $data, GeolocationResult $result)
     {
-        $result = new GeolocationResult();
-
-        return $result
+        $result
             ->setCountryCode($data->country->isoCode)
             ->setCountryName($data->country->name)
         ;
@@ -142,21 +155,19 @@ class Controller extends GeolocatorController
 
     /**
      * @param Enterprise $data
-     *
-     * @return GeolocationResult
+     * @param GeolocationResult $result
      */
-    private function enterpriseToGeolocationResult(Enterprise $data)
+    private function enterpriseToGeolocationResult(Enterprise $data, GeolocationResult $result)
     {
-        $result = new GeolocationResult();
-
-        return $result
-        ->setCityName(empty($configuration['skipCity']) ? $data['geoplugin_city'] : '')
-        ->setStateProvinceCode(empty($configuration['skipStateProvince']) ? $data['geoplugin_regionCode'] : '')
-        ->setStateProvinceName(empty($configuration['skipStateProvince']) ? $data['geoplugin_regionName'] : '')
-        ->setCountryCode(empty($configuration['skipCountry']) ? $data['geoplugin_countryCode'] : '')
-        ->setCountryName(empty($configuration['skipCountry']) ? $data['geoplugin_countryName'] : '')
-        ->setLatitude(empty($configuration['skipLatitudeLongitude']) ? $data['geoplugin_latitude'] : null)
-        ->setLongitude(empty($configuration['skipLatitudeLongitude']) ? $data['geoplugin_longitude'] : null)
+        $result
+            ->setCityName($data->city->name)
+            ->setStateProvinceCode($data->mostSpecificSubdivision->isoCode)
+            ->setStateProvinceName($data->mostSpecificSubdivision->name)
+            ->setPostalCode($data->postal->code)
+            ->setCountryCode($data->country->isoCode)
+            ->setCountryName($data->country->name)
+            ->setLatitude($data->location->latitude)
+            ->setLongitude($data->location->longitude)
         ;
     }
 }
