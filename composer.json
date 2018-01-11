@@ -1,5 +1,5 @@
 {
-	"name" : "concrete5/maxmind_geolocator",
+	"name" : "mlocati-concrete5-packages/maxmind_geolocator",
 	"description" : "Add a geolocator that uses a local MaxMind database",
 	"type" : "concrete5-package",
 	"license" : "MIT",
