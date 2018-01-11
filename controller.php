@@ -29,7 +29,7 @@ class Controller extends Package
 
     public function getPackageDescription()
     {
-        return t('This package installs a local geolocator using the MaxMing GeoIP2 data.');
+        return t('This package installs a local geolocator using the MaxMind GeoIP2 data.');
     }
 
     public function install()

@@ -33,7 +33,7 @@ if (is_string($postedProductId)) {
 </div>
 <div class="alert alert-warning">
     <?= t(
-        'In order to keep the database up-to-date you should run the %1$s authomated job or the %2$s CLI command on a regular basis.',
+        'In order to keep the database up-to-date you should run the %1$s automated job or the %2$s CLI command on a regular basis.',
         '<code><a target="_blank" href="' . URL::to('/dashboard/system/optimization/jobs') . '">' . h('Update MaxMind database') . '</a></code>',
         '<code>geo:maxmind:update</code>'
     ) ?>
