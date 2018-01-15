@@ -24,7 +24,7 @@ class Controller extends Package
 
     public function getPackageName()
     {
-        return t('MaxMind GeoIP2 geolocator');
+        return t('Geolocation with MaxMind GeoIP2');
     }
 
     public function getPackageDescription()
