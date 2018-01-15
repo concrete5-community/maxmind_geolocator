@@ -16,7 +16,7 @@ class Controller extends Package
 
     protected $appVersionRequired = '8.3.0';
 
-    protected $pkgVersion = '0.9.1';
+    protected $pkgVersion = '0.9.2';
 
     protected $pkgAutoloaderRegistries = [
         'src' => 'MaxmindGeolocator',
