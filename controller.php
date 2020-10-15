@@ -18,10 +18,6 @@ class Controller extends Package
 
     protected $pkgVersion = '0.9.2';
 
-    protected $pkgAutoloaderRegistries = [
-        'src' => 'MaxmindGeolocator',
-    ];
-
     public function getPackageName()
     {
         return t('Geolocation with MaxMind GeoIP2');
@@ -34,6 +30,7 @@ class Controller extends Package
 
     public function install()
     {
+        $this->registerAutoload();
         parent::install();
         $this->installXml();
         $this->registerServiceProvider();
@@ -51,6 +48,7 @@ class Controller extends Package
 
     public function on_start()
     {
+        $this->registerAutoload();
         $this->registerServiceProvider();
         if ($this->app->isRunThroughCommandLineInterface()) {
             $this->registerConsoleCommands();
@@ -61,6 +59,14 @@ class Controller extends Package
     {
         $contentImporter = $this->app->make(ContentImporter::class);
         $contentImporter->importContentFile($this->getPackagePath() . '/install.xml');
+    }
+
+    private function registerAutoload()
+    {
+        $autoloader = $this->getPackagePath() . '/vendor/autoload.php';
+        if (file_exists($autoloader)) {
+            require_once $autoloader;
+        }
     }
 
     /**
