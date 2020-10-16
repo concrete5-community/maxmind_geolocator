@@ -1,3 +1,4 @@
+/languages/
 /vendor/
 /.php_cs.cache
 /composer.lock
