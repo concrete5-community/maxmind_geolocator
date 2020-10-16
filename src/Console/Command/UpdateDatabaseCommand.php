@@ -15,7 +15,8 @@ class UpdateDatabaseCommand extends Command
         $this
             ->setName('geo:maxmind:update')
             ->setDescription('Update the MaxMind database used to geolocate IP addresses')
-            ->setHelp(<<<EOT
+            ->setHelp(
+                <<<'EOT'
 You should run this command on a regular basis in order to keep the MaxMind database up-to-date.
 
 The database will be updated only if necessary.

@@ -21,7 +21,7 @@ class InvalidProductIdException extends Exception
         $this->productId = $productId;
         $message = t('Invalid MaxMind product ID');
         if (is_string($productId) && $productId !== '') {
-            $message .= " ($productId)";
+            $message .= " ({$productId})";
         }
         parent::__construct($message);
     }

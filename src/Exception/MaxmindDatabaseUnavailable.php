@@ -2,7 +2,7 @@
 
 namespace MaxmindGeolocator\Exception;
 
-class MaxMindDatabaseUnavailable extends Exception
+class MaxmindDatabaseUnavailable extends Exception
 {
     /**
      * Initialize the instance.

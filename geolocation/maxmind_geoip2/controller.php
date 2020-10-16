@@ -12,7 +12,7 @@ use GeoIp2\Model\Country;
 use GeoIp2\Model\Enterprise;
 use IPLib\Address\AddressInterface;
 use MaxmindGeolocator\Exception\InvalidConfigurationArgument;
-use MaxmindGeolocator\Exception\MaxMindDatabaseUnavailable;
+use MaxmindGeolocator\Exception\MaxmindDatabaseUnavailable;
 use Symfony\Component\HttpFoundation\ParameterBag;
 
 class Controller extends GeolocatorController
@@ -36,40 +36,45 @@ class Controller extends GeolocatorController
     public function saveConfigurationForm(array $configuration, ParameterBag $data, ErrorList $error)
     {
         $valn = $this->app->make('helper/validation/numbers');
-        $s = $data->get('maxmindgl-productid');
-        $s = is_string($s) ? trim($s) : '';
+        // Product ID
+        $s = $this->getStringDataKey($data, 'maxmindgl-productid');
         if ($s === '') {
             $error->add(t('Please specify the MaxMind product'));
         } else {
             $configuration['product-id'] = $s;
         }
-        $s = $data->get('maxmindgl-databasepath');
-        $s = is_string($s) ? trim($s) : '';
+        // User ID
+        $s = $this->getStringDataKey($data, 'maxmindgl-userid');
+        if ($s === '') {
+            $error->add(t('Please specify the user ID'));
+        } elseif (!$valn->integer($s, 1)) {
+            $error->add(t('Please specify a number for user ID'));
+        } else {
+            $configuration['user-id'] = (int) $s;
+        }
+        // License key
+        $s = $this->getStringDataKey($data, 'maxmindgl-licensekey');
+        if ($s === '') {
+            $error->add(t('Please specify the license key'));
+        } else {
+            $configuration['license-key'] = $s;
+        }
+        // License key type
+        $s = $this->getStringDataKey($data, 'maxmindgl-mmprotocolversion');
+        if ($s !== '' && $valn->number($s, 1)) {
+            $configuration['maxmind-protocol-version'] = (int) $s;
+        } else {
+            $configuration['maxmind-protocol-version'] = null;
+        }
+        // Database path
+        $s = $this->getStringDataKey($data, 'maxmindgl-databasepath');
         if ($s === '') {
             $error->add(t('Please specify the location of the local MaxMind database'));
         } else {
             $configuration['database-path'] = $s;
         }
-        $s = $data->get('maxmindgl-licensekey');
-        $configuration['license-key'] = is_string($s) ? trim($s) : '';
-        $s = $data->get('maxmindgl-userid');
-        $s = is_string($s) ? trim($s) : '';
-        if ($s === '') {
-            $configuration['user-id'] = null;
-        } elseif ($valn->integer($s)) {
-            $configuration['user-id'] = (int) $s;
-        } else {
-            $error->add(t('Please specify a number for the MaxMind user ID'));
-        }
-
-        $s = $data->get('maxmindgl-protocol');
-        if (!is_string($s) || !in_array($s, ['http', 'https'])) {
-            $error->add(t('Please specify a valid value for the connection protocol'));
-        } else {
-            $configuration['protocol'] = $s;
-        }
-        $s = $data->get('maxmindgl-host');
-        $s = is_string($s) ? trim($s) : '';
+        // Host
+        $s = $this->getStringDataKey($data, 'maxmindgl-host');
         if ($s === '') {
             $error->add(t('Please specify the host of the MaxMind server'));
         } else {
@@ -90,7 +95,7 @@ class Controller extends GeolocatorController
         $exception = $result->getInnerException();
         if ($exception instanceof InvalidConfigurationArgument) {
             $result->setError(GeolocationResult::ERR_LIBRARYSPECIFIC, $exception->getMessage(), $exception);
-        } elseif ($exception instanceof MaxMindDatabaseUnavailable) {
+        } elseif ($exception instanceof MaxmindDatabaseUnavailable) {
             $result->setError(GeolocationResult::ERR_LIBRARYSPECIFIC, $exception->getMessage(), $exception);
         }
 
@@ -121,6 +126,23 @@ class Controller extends GeolocatorController
         }
 
         return $result;
+    }
+
+    /**
+     * @param \Symfony\Component\HttpFoundation\ParameterBag $data
+     * @param string $key
+     * @param bool $trim
+     *
+     * @return string
+     */
+    private function getStringDataKey(ParameterBag $data, $key, $trim = true)
+    {
+        $s = $data->get($key);
+        if (!is_string($s)) {
+            return '';
+        }
+
+        return $trim ? trim($s) : $s;
     }
 
     /**

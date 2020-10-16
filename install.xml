@@ -2,11 +2,10 @@
 <concrete5-cif version="1.0">
     <geolocators>
     	<geolocator handle="maxmind_geoip2" name="MaxMind GeoIP2" package="maxmind_geolocator">
-    		<option name="protocol">http</option>
     		<option name="host">updates.maxmind.com</option>
     		<option name="user-id"></option>
     		<option name="license-key"></option>
-    		<option name="product-id">GeoLite2-Country</option>
+    		<option name="product-id">GeoLite2-City</option>
     		<option name="database-path">MaxMind.mmdb</option>
     	</geolocator>
     </geolocators>

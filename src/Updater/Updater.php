@@ -9,29 +9,13 @@ use Concrete\Core\Http\Client\Client as HttpClient;
 use MaxmindGeolocator\Exception\InvalidConfigurationArgument;
 use MaxmindGeolocator\Exception\InvalidProductIdException;
 use Zend\Http\Client\Exception\RuntimeException as ZendRuntimeException;
-use Zend\Http\Header\ContentLength;
 use Zend\Http\Header\ContentType;
-use Zend\Http\Header\HeaderInterface;
 
 /**
  * Updater.
  */
-class Updater
+abstract class Updater
 {
-    /**
-     * MD5 code to be used when the local database does not exist.
-     *
-     * @var string
-     */
-    const MD5_INEXISTING_FILE = '00000000000000000000000000000000';
-
-    /**
-     * Text response when there's no update.
-     *
-     * @var string
-     */
-    const NO_NEW_UPDATES_RESPONSE = 'No new updates available';
-
     /**
      * Duration of the cached items (in seconds).
      *
@@ -40,31 +24,38 @@ class Updater
     const CACHE_LIFETIME = 3600;
 
     /**
+     * MD5 code to be used when the local database does not exist.
+     *
+     * @var string
+     */
+    const MD5_INEXISTING_FILE = '00000000000000000000000000000000';
+
+    /**
      * The Application instance.
      *
-     * @var Application
+     * @var \Concrete\Core\Application\Application
      */
     protected $application;
 
     /**
      * The updater configuration.
      *
-     * @var Configuration
+     * @var \MaxmindGeolocator\Updater\Configuration
      */
     protected $configuration;
 
     /**
      * The cache to be used.
      *
-     * @var Cache|null
+     * @var \Concrete\Core\Cache\Cache|null
      */
     protected $cache;
 
     /**
      * Initialize the instance.
      *
-     * @param Configuration $configuration the updater configuration
-     * @param Application $application the Application instance
+     * @param \MaxmindGeolocator\Updater\Configuration $configuration the updater configuration
+     * @param \Concrete\Core\Application\Application $application the Application instance
      */
     public function __construct(Configuration $configuration, Application $application)
     {
@@ -75,7 +66,7 @@ class Updater
     /**
      * Get the updater configuration.
      *
-     * @return Configuration
+     * @return \MaxmindGeolocator\Updater\Configuration
      */
     public function getConfiguration()
     {
@@ -85,7 +76,7 @@ class Updater
     /**
      * Set the updater configuration.
      *
-     * @param Configuration $configuration
+     * @param \MaxmindGeolocator\Updater\Configuration $configuration
      *
      * @return $this
      */
@@ -99,7 +90,7 @@ class Updater
     /**
      * Get the cache to be used.
      *
-     * @return Cache|null
+     * @return \Concrete\Core\Cache\Cache|null
      */
     public function getCache()
     {
@@ -108,8 +99,6 @@ class Updater
 
     /**
      * Set the cache to be used.
-     *
-     * @param Cache|null $cache
      *
      * @return $this
      */
@@ -123,152 +112,23 @@ class Updater
     /**
      * Check if a GeoIP2 database needs to be updated: if so, update it.
      *
+     * @throws \Concrete\Core\Error\UserMessageException in case of configuration problems
      * @throws \Zend\Http\Client\Exception\RuntimeException in case of HTTP communication problems
      *
-     * @return bool
+     * @return bool Returns true if the database has been updated, false if the local copy is already up-to-date
      */
-    public function update()
-    {
-        $filename = $this->configuration->getDatabasePath();
-        if ($filename === '') {
-            throw new InvalidConfigurationArgument('databasePath', $filename);
-        }
-        if (@is_file($filename)) {
-            $fileMd5 = @md5_file($filename);
-            if ($fileMd5 === false) {
-                throw new InvalidConfigurationArgument('databasePath', $filename);
-            }
-        } else {
-            $fileMd5 = static::MD5_INEXISTING_FILE;
-        }
-        //$fileMd5 = strrev($fileMd5);
-        $challengeMd5 = $this->getChallengeMd5();
-        $userId = $this->configuration->getUserId();
-        if ($userId === null) {
-            $c = $this->configuration;
-            $userId = $c::NO_USER_ID;
-        }
-        $tempDirectory = $this->application->make(VolatileDirectory::class);
-        $tempFile = $tempDirectory->getPath() . '/downloaded';
-        $response = $this->performRequest(
-            'app/update_secure',
-            "db_md5={$fileMd5}&challenge_md5={$challengeMd5}&user_id={$userId}&edition_id=" . rawurlencode($this->configuration->getProductId()),
-            $tempFile
-        );
-        $contentType = $response->getHeaders()->get('Content-Type');
-        if ($fileMd5 === static::MD5_INEXISTING_FILE) {
-            $updateNeeded = true;
-        } else {
-            $fileMd5Header = $response->getHeaders()->get('X-Database-MD5');
-            if ($fileMd5Header instanceof HeaderInterface) {
-                $updateNeeded = strcasecmp($fileMd5Header->getFieldValue(), $fileMd5) !== 0;
-            } else {
-                if ($contentType instanceof ContentType && $contentType->getMediaType() === 'text/plain') {
-                    $responseText = trim($response->getBody());
-                    if ($responseText !== static::NO_NEW_UPDATES_RESPONSE) {
-                        throw new ZendRuntimeException($responseText);
-                    }
-                    $updateNeeded = false;
-                } else {
-                    $updateNeeded = true;
-                }
-            }
-        }
-        if ($updateNeeded === false) {
-            $result = false;
-        } else {
-            if ($contentType instanceof ContentType && $contentType->getMediaType() !== 'application/gzip') {
-                throw new ZendRuntimeException($contentType->getMediaType());
-            }
-            $downloadSize = is_file($tempFile) ? @filesize($tempFile) : 0;
-            if ($downloadSize < 1) {
-                throw new \Exception(t('No data downloaded'));
-            }
-            $contentLengthHeader = $response->getHeaders()->get('Content-Length');
-            if ($contentLengthHeader instanceof ContentLength && $contentLengthHeader->getFieldValue() != $downloadSize) {
-                throw new \Exception(t('Invalid size of downloaded data: expected %1$s bytes, received %2$s', $contentLengthHeader->getFieldValue(), $downloadSize));
-            }
-            $this->decodeGzipFile($tempFile, $filename, $tempDirectory);
-            $result = true;
-        }
-        unset($response);
-
-        return $result;
-    }
-
-    /**
-     * Perform a request for a resource.
-     *
-     * @param string $path
-     * @param string $querystring
-     * @param string $saveToFilename
-     *
-     * @throws ZendRuntimeException
-     *
-     * @return \Zend\Http\Response
-     */
-    protected function performRequest($path, $querystring = '', $saveToFilename = '')
-    {
-        $uri = $this->configuration->getProtocol() . '://' . $this->configuration->getHost() . '/' . ltrim($path, '/');
-        if ($querystring !== '' && $querystring !== '?') {
-            $uri .= '?' . ltrim($querystring, '?');
-        }
-        $httpClient = $this->application->make(HttpClient::class);
-        $httpClient->reset();
-        if ($saveToFilename) {
-            $httpClient->setOptions([
-                'storeresponse' => false,
-                'outputstream' => $saveToFilename,
-            ]);
-        }
-        $httpClient->setUri($uri);
-        $response = $httpClient->send();
-        if (!$response->isSuccess()) {
-            $failureReason = $response->getReasonPhrase();
-            $contentType = $response->getHeaders()->get('Content-Type');
-            if ($contentType instanceof ContentType && $contentType->getMediaType() === 'text/plain') {
-                $s = trim($response->getBody());
-                if ($s !== '') {
-                    $failureReason = $s;
-                }
-            }
-            throw new ZendRuntimeException($failureReason);
-        }
-
-        return $response;
-    }
-
-    /**
-     * Perform a request for a text resource.
-     *
-     * @param string $path
-     * @param string $querystring
-     *
-     * @throws ZendRuntimeException
-     *
-     * @return string
-     */
-    protected function performTextRequest($path, $querystring = '')
-    {
-        $response = $this->performRequest($path, $querystring);
-        $contentType = $response->getHeaders()->get('Content-Type');
-        if ($contentType instanceof ContentType && $contentType->getMediaType() !== 'text/plain') {
-            throw new ZendRuntimeException(t('Invalid data received: %s', $contentType->getMediaType()));
-        }
-
-        return trim($response->getBody());
-    }
+    abstract public function update();
 
     /**
      * Get the MaxMind filename for a specific product.
      *
      * @param string $productId The MaxMind product ID (for instance: 'GeoLite2-City')
      *
-     * @throws ZendRuntimeException in case of HTTP communication problems
+     * @throws \Zend\Http\Client\Exception\RuntimeException in case of HTTP communication problems
      *
      * @return string
      */
-    protected function getMaxmindFilename()
+    public function getMaxmindFilename()
     {
         $productId = $this->configuration->getProductId();
         if ($productId === '') {
@@ -291,45 +151,104 @@ class Updater
     }
 
     /**
-     * Get the challenge code build from the current IP address and the license key.
+     * Get the MD5 of the local database file.
+     *
+     * @throws \MaxmindGeolocator\Exception\InvalidConfigurationArgument
      *
      * @return string
      */
-    protected function getChallengeMd5()
+    protected function getCurrentLocalDatabaseMD5()
     {
-        $licenseKey = $this->configuration->getLicenseKey();
-        if ($licenseKey === '') {
-            $c = $this->configuration;
-            $licenseKey = $c::NO_LICENSE_KEY;
+        $filename = $this->configuration->getDatabasePath();
+        if ($filename === '') {
+            throw new InvalidConfigurationArgument('databasePath', $filename);
         }
-        $myIP = $this->getCurrentIpAddressForMaxmind();
+        set_error_handler(static function () {}, -1);
+        $isFile = @is_file($filename);
+        restore_error_handler();
+        if (!$isFile) {
+            return static::MD5_INEXISTING_FILE;
+        }
+        set_error_handler(static function () {}, -1);
+        $fileMD5 = @md5_file($filename);
+        restore_error_handler();
+        if ($fileMD5 === false) {
+            throw new InvalidConfigurationArgument('databasePath', $filename);
+        }
 
-        return md5($licenseKey . $myIP);
+        return $fileMD5;
     }
 
     /**
-     * Get the current IP address as seen from MaxMind servers.
+     * Perform a request for a resource.
      *
-     * @throws ZendRuntimeException in case of HTTP communication problems
+     * @param string $path
+     * @param string $querystring
+     * @param string $saveToFilename
+     * @param string[] $userAndPassword
+     *
+     * @throws \Zend\Http\Client\Exception\RuntimeException
+     *
+     * @return \Zend\Http\Response
+     */
+    protected function performRequest($path, $querystring = '', $saveToFilename = '', array $userAndPassword = [], callable $validHttpStatusCodeChecker = null)
+    {
+        $uri = 'https://' . $this->configuration->getHost() . '/' . ltrim($path, '/');
+        if ($querystring !== '' && $querystring !== '?') {
+            $uri .= '?' . ltrim($querystring, '?');
+        }
+        $httpClient = $this->application->make(HttpClient::class);
+        $httpClient->reset();
+        if ($userAndPassword !== []) {
+            $httpClient->setAuth($userAndPassword[0], $userAndPassword[1]);
+        }
+        if ($saveToFilename) {
+            $httpClient->setOptions([
+                'storeresponse' => false,
+                'outputstream' => $saveToFilename,
+            ]);
+        }
+        $httpClient->setUri($uri);
+        $response = $httpClient->send();
+        if ($validHttpStatusCodeChecker === null) {
+            $ok = $response->isSuccess();
+        } else {
+            $ok = $validHttpStatusCodeChecker($response->getStatusCode());
+        }
+        if (!$ok) {
+            $failureReason = $response->getReasonPhrase();
+            $contentType = $response->getHeaders()->get('Content-Type');
+            if ($contentType instanceof ContentType && $contentType->getMediaType() === 'text/plain') {
+                $s = trim($response->getBody());
+                if ($s !== '') {
+                    $failureReason = $s;
+                }
+            }
+            throw new ZendRuntimeException($failureReason);
+        }
+
+        return $response;
+    }
+
+    /**
+     * Perform a request for a text resource.
+     *
+     * @param string $path
+     * @param string $querystring
+     *
+     * @throws \Zend\Http\Client\Exception\RuntimeException
      *
      * @return string
      */
-    protected function getCurrentIpAddressForMaxmind()
+    protected function performTextRequest($path, $querystring = '')
     {
-        $cacheItem = null;
-        if ($this->cache !== null) {
-            $cacheItem = $this->cache->getItem('maxmind_geolocator.updater.myip');
-        }
-        if ($cacheItem === null || $cacheItem->isMiss()) {
-            $result = $this->performTextRequest('app/update_getipaddr');
-            if ($cacheItem !== null) {
-                $cacheItem->set($result)->setTTL(static::CACHE_LIFETIME)->save();
-            }
-        } else {
-            $result = $cacheItem->get();
+        $response = $this->performRequest($path, $querystring);
+        $contentType = $response->getHeaders()->get('Content-Type');
+        if ($contentType instanceof ContentType && $contentType->getMediaType() !== 'text/plain') {
+            throw new ZendRuntimeException(t('Invalid data received: %s', $contentType->getMediaType()));
         }
 
-        return $result;
+        return trim($response->getBody());
     }
 
     /**
@@ -337,7 +256,6 @@ class Updater
      *
      * @param string $compressedFilename
      * @param string $uncompressedFilename
-     * @param VolatileDirectory $tmp
      */
     protected function decodeGzipFile($compressedFilename, $uncompressedFilename, VolatileDirectory $tmp)
     {

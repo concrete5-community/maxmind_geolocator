@@ -10,25 +10,18 @@ use MaxmindGeolocator\Exception\InvalidConfigurationArgument;
 class Configuration
 {
     /**
-     * The value to be used when there's no user id.
+     * MaxMind protocol version 1 (like for geoipupdate < 3.1.1).
      *
      * @var int
      */
-    const NO_USER_ID = 0;
+    const MMPROTOCOLVERSION_1 = 1;
 
     /**
-     * The value to be used when there's no license key.
+     * MaxMind protocol version 1 (like for geoipupdate >= 3.1.1).
      *
-     * @var string
+     * @var int
      */
-    const NO_LICENSE_KEY = '000000000000';
-
-    /**
-     * The protocol to be used for communications.
-     *
-     * @var string
-     */
-    protected $protocol = 'http';
+    const MMPROTOCOLVERSION_2 = 2;
 
     /**
      * The host to be used for communications.
@@ -42,7 +35,7 @@ class Configuration
      *
      * @var int|null
      */
-    protected $userId = null;
+    protected $userId;
 
     /**
      * The MaxMind license key.
@@ -66,37 +59,11 @@ class Configuration
     protected $databasePath = '';
 
     /**
-     * Get the protocol to be used for communications.
+     * The MaxMind protocol version.
      *
-     * @return string
+     * @var int|null
      */
-    public function getProtocol()
-    {
-        return $this->protocol;
-    }
-
-    /**
-     * Set the protocol to be used for communications.
-     *
-     * @param string $protocol
-     *
-     * @throws InvalidConfigurationArgument
-     *
-     * @return $this
-     */
-    public function setProtocol($protocol)
-    {
-        $p = is_string($protocol) ? strtolower(trim($protocol)) : '';
-        if (!in_array($p, [
-            'http',
-            'https',
-        ])) {
-            throw new InvalidConfigurationArgument('protocol', $protocol);
-        }
-        $this->protocol = $p;
-
-        return $this;
-    }
+    protected $maxmindProtocolVersion;
 
     /**
      * Get the host to be used for communications.
@@ -113,7 +80,7 @@ class Configuration
      *
      * @param string $host
      *
-     * @throws InvalidConfigurationArgument
+     * @throws \MaxmindGeolocator\Exception\InvalidConfigurationArgument
      *
      * @return $this
      */
@@ -143,7 +110,7 @@ class Configuration
      *
      * @param int|null $userId
      *
-     * @throws InvalidConfigurationArgument
+     * @throws \MaxmindGeolocator\Exception\InvalidConfigurationArgument
      *
      * @return $this
      */
@@ -230,6 +197,41 @@ class Configuration
     public function setDatabasePath($databasePath)
     {
         $this->databasePath = trim((string) $databasePath);
+
+        return $this;
+    }
+
+    /**
+     * Get the MaxMind protocol version.
+     *
+     * @return int|null
+     */
+    public function getMaxmindProtocolVersion()
+    {
+        return $this->maxmindProtocolVersion;
+    }
+
+    /**
+     * Set the path to the local database.
+     *
+     * @param int|string|null $value
+     *
+     * @throws \MaxmindGeolocator\Exception\InvalidConfigurationArgument
+     *
+     * @return $this
+     */
+    public function setMaxmindProtocolVersion($value)
+    {
+        $s = (string) $value;
+        if ($s === '') {
+            $this->maxmindProtocolVersion = null;
+        } else {
+            $i = (int) $value;
+            if ($s !== (string) $i || !in_array($i, [self::MMPROTOCOLVERSION_1, self::MMPROTOCOLVERSION_2], true)) {
+                throw new InvalidConfigurationArgument('maxmindProtocolVersion', $value);
+            }
+            $this->maxmindProtocolVersion = $i;
+        }
 
         return $this;
     }
