@@ -43,7 +43,7 @@ $maxmindProtocolVersions = [
     <?= t('This product includes GeoLite2 data created by MaxMind, available from %s', '<a target="_blank" href="https://www.maxmind.com">www.maxmind.com</a>.') ?>
 </div>
 <div class="alert alert-warning">
-    <?= t('You need a MaxMing account. You can create free account <a href="%s" target="_blank" rel="noreferrer">here</a>.', 'https://www.maxmind.com/en/geolite2/signup') ?><br />
+    <?= t('You need a MaxMind account. You can create free account <a href="%s" target="_blank" rel="noreferrer">here</a>.', 'https://www.maxmind.com/en/geolite2/signup') ?><br />
     <?= t('You can create (free) license keys <a href="%s" target="_blank" rel="noreferrer">here</a>.', 'https://www.maxmind.com/en/accounts/current/license-key') ?>
 </div>
 <div class="alert alert-warning">
