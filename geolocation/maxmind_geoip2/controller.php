@@ -5,14 +5,14 @@ namespace Concrete\Package\MaxmindGeolocator\Geolocator\MaxmindGeoip2;
 use Concrete\Core\Error\ErrorList\ErrorList;
 use Concrete\Core\Geolocator\GeolocationResult;
 use Concrete\Core\Geolocator\GeolocatorController;
+use Concrete\Package\MaxmindGeolocator\Exception\InvalidConfigurationArgument;
+use Concrete\Package\MaxmindGeolocator\Exception\MaxmindDatabaseUnavailable;
 use GeoIp2\Database\Reader;
 use GeoIp2\Exception\AddressNotFoundException;
 use GeoIp2\Model\City;
 use GeoIp2\Model\Country;
 use GeoIp2\Model\Enterprise;
 use IPLib\Address\AddressInterface;
-use Concrete\Package\MaxmindGeolocator\Exception\InvalidConfigurationArgument;
-use Concrete\Package\MaxmindGeolocator\Exception\MaxmindDatabaseUnavailable;
 use Symfony\Component\HttpFoundation\ParameterBag;
 
 class Controller extends GeolocatorController

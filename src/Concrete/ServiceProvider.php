@@ -6,9 +6,9 @@ use Concrete\Core\Application\Application;
 use Concrete\Core\Foundation\Service\Provider;
 use Concrete\Core\Geolocator\GeolocatorService;
 use Concrete\Core\Package\PackageService;
-use GeoIp2\Database\Reader;
 use Concrete\Package\MaxmindGeolocator\Exception\InvalidConfigurationArgument;
 use Concrete\Package\MaxmindGeolocator\Exception\MaxmindDatabaseUnavailable;
+use GeoIp2\Database\Reader;
 
 /**
  * Class that register the services.
