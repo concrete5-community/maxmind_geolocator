@@ -56,42 +56,26 @@ $maxmindProtocolVersions = [
 
 <div class="form-group">
     <?= $form->label('maxmindgl-productid', t('MaxMind database')) ?>
-    <select id="maxmindgl-productid" name="maxmindgl-productid" style="display: none">
-        <?php
-        foreach ($productIds as $productId => $productName) {
-            ?><option value="<?= h($productId) ?>"<?= $productId === $selectedProductId ? ' selected="selected"' : '' ?>><?= h($productName) ?></option><?php
-        }
-        ?>
-    </select>
-    <script>
-    $(document).ready(function() {
-		$('#maxmindgl-productid').selectize({
-		    create: true
-		});
-	});
-    </script>
+    <?= $form->select('maxmindgl-productid', $productIds, $selectedProductId) ?>
 </div>
 
 <div class="row">
-    <div class="form-group col-md-6">
+    <div class="form-group col col-md-6">
         <?= $form->label('maxmindgl-userid', t('MaxMind user ID')) ?>
         <?= $form->number('maxmindgl-userid', $configuration['user-id'], ['step' => '1']) ?>
     </div>
-    <div class="form-group col-md-6">
+    <div class="form-group col col-md-6">
         <?= $form->label('maxmindgl-licensekey', t('MaxMind license key')) ?>
         <?= $form->text('maxmindgl-licensekey', $configuration['license-key']) ?>
     </div>
 </div>
 
 <fieldset>
-
     <legend><?= t('Advanced Options') ?></legend>
-
     <div class="form-group">
         <?= $form->label('maxmindgl-mmprotocolversion', t('Type of the MaxMind license key')) ?>
         <?= $form->select('maxmindgl-mmprotocolversion', $maxmindProtocolVersions, empty($configuration['maxmind-protocol-version']) ? '' : $configuration['maxmind-protocol-version']) ?>
     </div>
-
     <div class="form-group">
         <?= $form->label(
             'maxmindgl-databasepath',
