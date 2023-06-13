@@ -39,7 +39,7 @@ class ServiceProvider extends Provider
             if (!empty($data['product-id'])) {
                 $configuration->setProductId($data['product-id']);
             }
-            $configuration->setMaxmindProtocolVersion($data['maxmind-protocol-version']);
+            $configuration->setMaxmindProtocolVersion(empty($data['maxmind-protocol-version']) ? '' : $data['maxmind-protocol-version']);
             if (!empty($data['database-path']) && is_string($data['database-path'])) {
                 $path = str_replace(DIRECTORY_SEPARATOR, '/', trim($data['database-path']));
                 if ($path !== '') {
