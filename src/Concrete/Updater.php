@@ -1,13 +1,13 @@
 <?php
 
-namespace MaxmindGeolocator\Updater;
+namespace Concrete\Package\MaxmindGeolocator;
 
 use Concrete\Core\Application\Application;
 use Concrete\Core\Cache\Cache;
 use Concrete\Core\File\Service\VolatileDirectory;
 use Concrete\Core\Http\Client\Client as HttpClient;
-use MaxmindGeolocator\Exception\InvalidConfigurationArgument;
-use MaxmindGeolocator\Exception\InvalidProductIdException;
+use Concrete\Package\MaxmindGeolocator\Exception\InvalidConfigurationArgument;
+use Concrete\Package\MaxmindGeolocator\Exception\InvalidProductIdException;
 use Zend\Http\Client\Exception\RuntimeException as ZendRuntimeException;
 use Zend\Http\Header\ContentType;
 
@@ -40,7 +40,7 @@ abstract class Updater
     /**
      * The updater configuration.
      *
-     * @var \MaxmindGeolocator\Updater\Configuration
+     * @var \Concrete\Package\MaxmindGeolocator\Updater\Configuration
      */
     protected $configuration;
 
@@ -54,10 +54,10 @@ abstract class Updater
     /**
      * Initialize the instance.
      *
-     * @param \MaxmindGeolocator\Updater\Configuration $configuration the updater configuration
+     * @param \Concrete\Package\MaxmindGeolocator\Updater\Configuration $configuration the updater configuration
      * @param \Concrete\Core\Application\Application $application the Application instance
      */
-    public function __construct(Configuration $configuration, Application $application)
+    public function __construct(Updater\Configuration $configuration, Application $application)
     {
         $this->configuration = $configuration;
         $this->application = $application;
@@ -66,7 +66,7 @@ abstract class Updater
     /**
      * Get the updater configuration.
      *
-     * @return \MaxmindGeolocator\Updater\Configuration
+     * @return \Concrete\Package\MaxmindGeolocator\Updater\Configuration
      */
     public function getConfiguration()
     {
@@ -76,11 +76,11 @@ abstract class Updater
     /**
      * Set the updater configuration.
      *
-     * @param \MaxmindGeolocator\Updater\Configuration $configuration
+     * @param \Concrete\Package\MaxmindGeolocator\Updater\Configuration $configuration
      *
      * @return $this
      */
-    public function setConfiguration(Configuration $configuration)
+    public function setConfiguration(Updater\Configuration $configuration)
     {
         $this->configuration = $configuration;
 
@@ -153,7 +153,7 @@ abstract class Updater
     /**
      * Get the MD5 of the local database file.
      *
-     * @throws \MaxmindGeolocator\Exception\InvalidConfigurationArgument
+     * @throws \Concrete\Package\MaxmindGeolocator\Exception\InvalidConfigurationArgument
      *
      * @return string
      */

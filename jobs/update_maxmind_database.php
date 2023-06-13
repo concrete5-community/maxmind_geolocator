@@ -4,7 +4,7 @@ namespace Concrete\Package\MaxmindGeolocator\Job;
 
 use Concrete\Core\Job\Job;
 use Concrete\Core\Support\Facade\Application;
-use MaxmindGeolocator\Updater\Updater;
+use Concrete\Package\MaxmindGeolocator\Updater;
 
 class UpdateMaxmindDatabase extends Job
 {

@@ -1,8 +1,8 @@
 <?php
 
-namespace MaxmindGeolocator\Updater;
+namespace Concrete\Package\MaxmindGeolocator\Updater;
 
-use MaxmindGeolocator\Exception\InvalidConfigurationArgument;
+use Concrete\Package\MaxmindGeolocator\Exception\InvalidConfigurationArgument;
 
 /**
  * Updater configuration.
@@ -80,7 +80,7 @@ class Configuration
      *
      * @param string $host
      *
-     * @throws \MaxmindGeolocator\Exception\InvalidConfigurationArgument
+     * @throws \Concrete\Package\MaxmindGeolocator\Exception\InvalidConfigurationArgument
      *
      * @return $this
      */
@@ -110,7 +110,7 @@ class Configuration
      *
      * @param int|null $userId
      *
-     * @throws \MaxmindGeolocator\Exception\InvalidConfigurationArgument
+     * @throws \Concrete\Package\MaxmindGeolocator\Exception\InvalidConfigurationArgument
      *
      * @return $this
      */
@@ -216,7 +216,7 @@ class Configuration
      *
      * @param int|string|null $value
      *
-     * @throws \MaxmindGeolocator\Exception\InvalidConfigurationArgument
+     * @throws \Concrete\Package\MaxmindGeolocator\Exception\InvalidConfigurationArgument
      *
      * @return $this
      */

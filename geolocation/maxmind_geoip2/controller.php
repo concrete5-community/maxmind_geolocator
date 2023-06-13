@@ -11,8 +11,8 @@ use GeoIp2\Model\City;
 use GeoIp2\Model\Country;
 use GeoIp2\Model\Enterprise;
 use IPLib\Address\AddressInterface;
-use MaxmindGeolocator\Exception\InvalidConfigurationArgument;
-use MaxmindGeolocator\Exception\MaxmindDatabaseUnavailable;
+use Concrete\Package\MaxmindGeolocator\Exception\InvalidConfigurationArgument;
+use Concrete\Package\MaxmindGeolocator\Exception\MaxmindDatabaseUnavailable;
 use Symfony\Component\HttpFoundation\ParameterBag;
 
 class Controller extends GeolocatorController

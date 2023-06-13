@@ -1,6 +1,6 @@
 <?php
 
-use MaxmindGeolocator\Updater\Configuration;
+use Concrete\Package\MaxmindGeolocator\Updater\Configuration;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 

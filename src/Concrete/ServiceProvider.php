@@ -1,14 +1,14 @@
 <?php
 
-namespace MaxmindGeolocator;
+namespace Concrete\Package\MaxmindGeolocator;
 
 use Concrete\Core\Application\Application;
 use Concrete\Core\Foundation\Service\Provider;
 use Concrete\Core\Geolocator\GeolocatorService;
 use Concrete\Core\Package\PackageService;
 use GeoIp2\Database\Reader;
-use MaxmindGeolocator\Exception\InvalidConfigurationArgument;
-use MaxmindGeolocator\Exception\MaxmindDatabaseUnavailable;
+use Concrete\Package\MaxmindGeolocator\Exception\InvalidConfigurationArgument;
+use Concrete\Package\MaxmindGeolocator\Exception\MaxmindDatabaseUnavailable;
 
 /**
  * Class that register the services.
@@ -53,7 +53,7 @@ class ServiceProvider extends Provider
             return $configuration;
         });
 
-        $this->app->bind(Updater\Updater::class, function (Application $app) {
+        $this->app->bind(Updater::class, function (Application $app) {
             $configuration = $app->make(Updater\Configuration::class);
             $maxmMindProtocolVersion = $configuration->getMaxmindProtocolVersion();
             if ($maxmMindProtocolVersion === null) {

@@ -1,6 +1,6 @@
 <?php
 
-namespace MaxmindGeolocator\Exception;
+namespace Concrete\Package\MaxmindGeolocator\Exception;
 
 /**
  * Base class for all the library exceptions.

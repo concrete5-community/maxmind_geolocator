@@ -1,10 +1,10 @@
 <?php
 
-namespace MaxmindGeolocator\Console\Command;
+namespace Concrete\Package\MaxmindGeolocator\Console\Command;
 
 use Concrete\Core\Console\Command;
 use Concrete\Core\Support\Facade\Application;
-use MaxmindGeolocator\Updater\Updater;
+use Concrete\Package\MaxmindGeolocator\Updater;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 

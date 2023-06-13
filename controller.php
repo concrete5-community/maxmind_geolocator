@@ -5,9 +5,6 @@ namespace Concrete\Package\MaxmindGeolocator;
 use Concrete\Core\Backup\ContentImporter;
 use Concrete\Core\Package\Package;
 use Exception;
-use MaxmindGeolocator\Console\Command\UpdateDatabaseCommand;
-use MaxmindGeolocator\ServiceProvider;
-use MaxmindGeolocator\Updater\Updater;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
@@ -85,6 +82,6 @@ class Controller extends Package
     private function registerConsoleCommands()
     {
         $console = $this->app->make('console');
-        $console->add(new UpdateDatabaseCommand());
+        $console->add(new Console\Command\UpdateDatabaseCommand());
     }
 }

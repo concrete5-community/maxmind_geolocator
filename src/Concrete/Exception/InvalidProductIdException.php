@@ -1,6 +1,6 @@
 <?php
 
-namespace MaxmindGeolocator\Exception;
+namespace Concrete\Package\MaxmindGeolocator\Exception;
 
 class InvalidProductIdException extends Exception
 {
