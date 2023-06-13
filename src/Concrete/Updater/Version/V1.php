@@ -4,12 +4,9 @@ namespace Concrete\Package\MaxmindGeolocator\Updater\Version;
 
 use Concrete\Core\Error\UserMessageException;
 use Concrete\Core\File\Service\VolatileDirectory;
+use Concrete\Package\MaxmindGeolocator\Exception\HttpException;
 use Concrete\Package\MaxmindGeolocator\Exception\InvalidConfigurationArgument;
 use Concrete\Package\MaxmindGeolocator\Updater;
-use Zend\Http\Client\Exception\RuntimeException as ZendRuntimeException;
-use Zend\Http\Header\ContentLength;
-use Zend\Http\Header\ContentType;
-use Zend\Http\Header\HeaderInterface;
 
 /**
  * Updater (version 1).
@@ -50,18 +47,19 @@ class V1 extends Updater
             "db_md5={$fileMD5}&challenge_md5={$challengeMD5}&user_id={$userId}&edition_id=" . rawurlencode($this->configuration->getProductId()),
             $tempFile
         );
-        $contentType = $response->getHeaders()->get('Content-Type');
+        $contentType = isset($response['headers']['content-type']) ? $response['headers']['content-type'] : '';
         if ($fileMD5 === static::MD5_INEXISTING_FILE) {
             $updateNeeded = true;
         } else {
-            $fileMD5Header = $response->getHeaders()->get('X-Database-MD5');
-            if ($fileMD5Header instanceof HeaderInterface) {
-                $updateNeeded = strcasecmp($fileMD5Header->getFieldValue(), $fileMD5) !== 0;
+            $fileMD5Header = isset($response['headers']['x-database-md5']) ? $response['headers']['x-database-md5'] : '';
+            if ($fileMD5Header !== '') {
+                $updateNeeded = strcasecmp($fileMD5Header, $fileMD5) !== 0;
             } else {
-                if ($contentType instanceof ContentType && $contentType->getMediaType() === 'text/plain') {
-                    $responseText = trim($response->getBody());
+                if (stripos($contentType, 'text/plain') === 0) {
+                    $bodyGetter = $response['bodyGetter'];
+                    $responseText = $bodyGetter();
                     if ($responseText !== static::NO_NEW_UPDATES_RESPONSE) {
-                        throw new ZendRuntimeException($responseText);
+                        throw new HttpException($responseText);
                     }
                     $updateNeeded = false;
                 } else {
@@ -72,16 +70,17 @@ class V1 extends Updater
         if ($updateNeeded === false) {
             $result = false;
         } else {
-            if ($contentType instanceof ContentType && $contentType->getMediaType() !== 'application/gzip') {
-                throw new ZendRuntimeException($contentType->getMediaType());
+            if (stripos($contentType, 'application/gzip') !== 0) {
+                throw new HttpException($contentType);
             }
             $downloadSize = is_file($tempFile) ? @filesize($tempFile) : 0;
             if ($downloadSize < 1) {
                 throw new \Exception(t('No data downloaded'));
             }
-            $contentLengthHeader = $response->getHeaders()->get('Content-Length');
-            if ($contentLengthHeader instanceof ContentLength && $contentLengthHeader->getFieldValue() != $downloadSize) {
-                throw new \Exception(t('Invalid size of downloaded data: expected %1$s bytes, received %2$s', $contentLengthHeader->getFieldValue(), $downloadSize));
+            $contentLength = isset($response['headers']['content-length']) ? $response['headers']['content-length'] : '';
+            $contentLength = is_numeric($contentLength) ? (int) $contentLength : null;
+            if ($contentLength !== null && $contentLength !== $downloadSize) {
+                throw new \Exception(t('Invalid size of downloaded data: expected %1$s bytes, received %2$s', $contentLength, $downloadSize));
             }
             $this->decodeGzipFile($tempFile, $filename, $tempDirectory);
             $result = true;
@@ -107,7 +106,7 @@ class V1 extends Updater
     /**
      * Get the current IP address as seen from MaxMind servers.
      *
-     * @throws \Zend\Http\Client\Exception\RuntimeException in case of HTTP communication problems
+     * @throws \Concrete\Package\MaxmindGeolocator\Exception\HttpException in case of HTTP communication problems
      *
      * @return string
      */

@@ -6,10 +6,10 @@ use Concrete\Core\Application\Application;
 use Concrete\Core\Cache\Cache;
 use Concrete\Core\File\Service\VolatileDirectory;
 use Concrete\Core\Http\Client\Client as HttpClient;
+use Concrete\Package\MaxmindGeolocator\Exception\HttpException;
 use Concrete\Package\MaxmindGeolocator\Exception\InvalidConfigurationArgument;
 use Concrete\Package\MaxmindGeolocator\Exception\InvalidProductIdException;
-use Zend\Http\Client\Exception\RuntimeException as ZendRuntimeException;
-use Zend\Http\Header\ContentType;
+use GuzzleHttp\Client as GuzzleClient;
 
 /**
  * Updater.
@@ -113,7 +113,7 @@ abstract class Updater
      * Check if a GeoIP2 database needs to be updated: if so, update it.
      *
      * @throws \Concrete\Core\Error\UserMessageException in case of configuration problems
-     * @throws \Zend\Http\Client\Exception\RuntimeException in case of HTTP communication problems
+     * @throws \Concrete\Package\MaxmindGeolocator\Exception\HttpException in case of HTTP communication problems
      *
      * @return bool Returns true if the database has been updated, false if the local copy is already up-to-date
      */
@@ -124,7 +124,7 @@ abstract class Updater
      *
      * @param string $productId The MaxMind product ID (for instance: 'GeoLite2-City')
      *
-     * @throws \Zend\Http\Client\Exception\RuntimeException in case of HTTP communication problems
+     * @throws \Concrete\Package\MaxmindGeolocator\Exception\HttpException in case of HTTP communication problems
      *
      * @return string
      */
@@ -187,9 +187,9 @@ abstract class Updater
      * @param string $saveToFilename
      * @param string[] $userAndPassword
      *
-     * @throws \Zend\Http\Client\Exception\RuntimeException
+     * @throws \Concrete\Package\MaxmindGeolocator\Exception\HttpException
      *
-     * @return \Zend\Http\Response
+     * @return array
      */
     protected function performRequest($path, $querystring = '', $saveToFilename = '', array $userAndPassword = [], callable $validHttpStatusCodeChecker = null)
     {
@@ -198,33 +198,30 @@ abstract class Updater
             $uri .= '?' . ltrim($querystring, '?');
         }
         $httpClient = $this->application->make(HttpClient::class);
-        $httpClient->reset();
-        if ($userAndPassword !== []) {
-            $httpClient->setAuth($userAndPassword[0], $userAndPassword[1]);
+        try {
+            if ($httpClient instanceof GuzzleClient) {
+                $response = $this->performRequestV9($httpClient, $uri, $userAndPassword, $saveToFilename);
+            } else {
+                $response = $this->performRequestV8($httpClient, $uri, $userAndPassword, $saveToFilename);
+            }
+        } catch (\Exception $x) {
+            throw new HttpException($x->getMessage());
         }
-        if ($saveToFilename) {
-            $httpClient->setOptions([
-                'storeresponse' => false,
-                'outputstream' => $saveToFilename,
-            ]);
-        }
-        $httpClient->setUri($uri);
-        $response = $httpClient->send();
         if ($validHttpStatusCodeChecker === null) {
-            $ok = $response->isSuccess();
+            $ok = 200 <= $response['statusCode'] && $response['statusCode'] < 300;
         } else {
-            $ok = $validHttpStatusCodeChecker($response->getStatusCode());
+            $ok = $validHttpStatusCodeChecker($response['statusCode']);
         }
         if (!$ok) {
-            $failureReason = $response->getReasonPhrase();
-            $contentType = $response->getHeaders()->get('Content-Type');
-            if ($contentType instanceof ContentType && $contentType->getMediaType() === 'text/plain') {
-                $s = trim($response->getBody());
+            $failureReason = $response['reasonPhrase'];
+            if (isset($response['headers']['content-type']) && stripos($response['headers']['content-type'], 'text/') === 0) {
+                $bodyGetter = $response['bodyGetter'];
+                $s = trim($bodyGetter());
                 if ($s !== '') {
                     $failureReason = $s;
                 }
             }
-            throw new ZendRuntimeException($failureReason);
+            throw new HttpException($failureReason);
         }
 
         return $response;
@@ -236,19 +233,19 @@ abstract class Updater
      * @param string $path
      * @param string $querystring
      *
-     * @throws \Zend\Http\Client\Exception\RuntimeException
+     * @throws \Concrete\Package\MaxmindGeolocator\Exception\HttpException
      *
      * @return string
      */
     protected function performTextRequest($path, $querystring = '')
     {
         $response = $this->performRequest($path, $querystring);
-        $contentType = $response->getHeaders()->get('Content-Type');
-        if ($contentType instanceof ContentType && $contentType->getMediaType() !== 'text/plain') {
-            throw new ZendRuntimeException(t('Invalid data received: %s', $contentType->getMediaType()));
+        if (isset($response['headers']['content-type']) && stripos($response['headers']['content-type'], 'text/plain') !== 0) {
+            throw new HttpException(t('Invalid data received: %s', $response['headers']['content-type']));
         }
+        $bodyGetter = $response['bodyGetter'];
 
-        return trim($response->getBody());
+        return trim($bodyGetter());
     }
 
     /**
@@ -306,5 +303,74 @@ abstract class Updater
         if (@rename($unzippedFilename, $uncompressedFilename) !== true) {
             throw new \Exception('Failed to move decompressed file');
         }
+    }
+
+    /**
+     * @param string $uri
+     * @param string[] $userAndPassword
+     * @param string $saveToFilename
+     *
+     * @return array
+     */
+    private function performRequestV9(HttpClient $httpClient, $uri, array $userAndPassword, $saveToFilename)
+    {
+        $options = ['http_errors' => false];
+        if ($userAndPassword !== []) {
+            $options['auth'] = $userAndPassword;
+        }
+        if ($saveToFilename !== '') {
+            $options['sink'] = $saveToFilename;
+        }
+        $response = $httpClient->get($uri, $options);
+
+        $result = [
+            'statusCode' => $response->getStatusCode(),
+            'reasonPhrase' => $response->getReasonPhrase(),
+            'headers' => [],
+            'bodyGetter' => static function () use ($response) {
+                return (string) $response->getBody();
+            },
+        ];
+        foreach ($response->getHeaders() as $name => $values) {
+            $result['headers'][strtolower($name)] = implode(', ', $values);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param string $uri
+     * @param string[] $userAndPassword
+     * @param string $saveToFilename
+     *
+     * @return array
+     */
+    private function performRequestV8(HttpClient $httpClient, $uri, array $userAndPassword, $saveToFilename)
+    {
+        $httpClient->reset();
+        if ($userAndPassword !== []) {
+            $httpClient->setAuth($userAndPassword[0], $userAndPassword[1]);
+        }
+        if ($saveToFilename) {
+            $httpClient->setOptions([
+                'storeresponse' => false,
+                'outputstream' => $saveToFilename,
+            ]);
+        }
+        $httpClient->setUri($uri);
+        $response = $httpClient->send();
+        $result = [
+            'statusCode' => $response->getStatusCode(),
+            'reasonPhrase' => $response->getReasonPhrase(),
+            'headers' => [],
+            'bodyGetter' => static function () use ($response) {
+                return $response->getBody();
+            },
+        ];
+        foreach ($response->getHeaders() as $header) {
+            $result['headers'][strtolower($header->getFieldName())] = $header->getFieldValue();
+        }
+
+        return $response;
     }
 }
