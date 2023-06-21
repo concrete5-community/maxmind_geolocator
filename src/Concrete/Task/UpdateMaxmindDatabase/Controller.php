@@ -2,12 +2,12 @@
 
 namespace Concrete\Package\MaxmindGeolocator\Task\UpdateMaxmindDatabase;
 
-use Concrete\Core\Command\Task\TaskInterface;
+use Concrete\Core\Application\Application;
 use Concrete\Core\Command\Task\Controller\AbstractController;
 use Concrete\Core\Command\Task\Input\InputInterface;
-use Concrete\Core\Command\Task\Runner\TaskRunnerInterface;
-use Concrete\Core\Application\Application;
 use Concrete\Core\Command\Task\Runner\CommandTaskRunner;
+use Concrete\Core\Command\Task\Runner\TaskRunnerInterface;
+use Concrete\Core\Command\Task\TaskInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 

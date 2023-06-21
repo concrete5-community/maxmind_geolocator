@@ -55,7 +55,7 @@ class Controller extends Package
         }
         if ($this->app->bound(TaskManager::class)) {
             $this->app->extend(TaskManager::class, static function (TaskManager $manager) {
-                return $manager->extend('update_maxmind_database', static function(Application $app) {
+                return $manager->extend('update_maxmind_database', static function (Application $app) {
                     return $app->make(Task\UpdateMaxmindDatabase\Controller::class);
                 });
             });
