@@ -11,6 +11,8 @@ use Concrete\Package\MaxmindGeolocator\Exception\InvalidConfigurationArgument;
 use Concrete\Package\MaxmindGeolocator\Exception\InvalidProductIdException;
 use GuzzleHttp\Client as GuzzleClient;
 
+defined('C5_EXECUTE') or die('Access Denied.');
+
 /**
  * Updater.
  */

@@ -8,6 +8,8 @@ use Concrete\Package\MaxmindGeolocator\Updater;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+defined('C5_EXECUTE') or die('Access Denied.');
+
 class UpdateDatabaseCommand extends Command
 {
     protected function configure()

@@ -2,6 +2,8 @@
 
 namespace Concrete\Package\MaxmindGeolocator\Exception;
 
+defined('C5_EXECUTE') or die('Access Denied.');
+
 class InvalidConfigurationArgument extends Exception
 {
     /**

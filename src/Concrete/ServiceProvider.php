@@ -10,6 +10,8 @@ use Concrete\Package\MaxmindGeolocator\Exception\InvalidConfigurationArgument;
 use Concrete\Package\MaxmindGeolocator\Exception\MaxmindDatabaseUnavailable;
 use GeoIp2\Database\Reader;
 
+defined('C5_EXECUTE') or die('Access Denied.');
+
 /**
  * Class that register the services.
  */

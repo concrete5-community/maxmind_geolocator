@@ -4,6 +4,8 @@ namespace Concrete\Package\MaxmindGeolocator\Updater;
 
 use Concrete\Package\MaxmindGeolocator\Exception\InvalidConfigurationArgument;
 
+defined('C5_EXECUTE') or die('Access Denied.');
+
 /**
  * Updater configuration.
  */
