@@ -19,5 +19,15 @@
             <job handle="update_maxmind_database" />
         </jobset>
     </jobsets>
-    
+
+    <tasks>
+        <task handle="update_maxmind_database" package="maxmind_geolocator" />
+    </tasks>
+
+    <tasksets>
+        <taskset handle="maintenance" name="Maintenance" package="">
+            <task handle="update_maxmind_database" />
+        </taskset>
+    </tasksets>
+
 </concrete5-cif>

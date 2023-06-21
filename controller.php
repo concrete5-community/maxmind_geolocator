@@ -2,7 +2,9 @@
 
 namespace Concrete\Package\MaxmindGeolocator;
 
+use Concrete\Core\Application\Application;
 use Concrete\Core\Backup\ContentImporter;
+use Concrete\Core\Command\Task\Manager as TaskManager;
 use Concrete\Core\Package\Package;
 use Exception;
 
@@ -50,6 +52,13 @@ class Controller extends Package
         $this->registerServiceProvider();
         if ($this->app->isRunThroughCommandLineInterface()) {
             $this->registerConsoleCommands();
+        }
+        if ($this->app->bound(TaskManager::class)) {
+            $this->app->extend(TaskManager::class, static function (TaskManager $manager) {
+                return $manager->extend('update_maxmind_database', static function(Application $app) {
+                    return $app->make(Task\UpdateMaxmindDatabase\Controller::class);
+                });
+            });
         }
     }
 
