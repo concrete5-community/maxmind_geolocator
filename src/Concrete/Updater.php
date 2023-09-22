@@ -373,6 +373,6 @@ abstract class Updater
             $result['headers'][strtolower($header->getFieldName())] = $header->getFieldValue();
         }
 
-        return $response;
+        return $result;
     }
 }
