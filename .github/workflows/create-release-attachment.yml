@@ -9,20 +9,24 @@ jobs:
   attach-zip:
     name: Attach ZIP to release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Setup PHP
+      -
+        name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '5.5'
-          tools: composer:v1
+          php-version: '8.4'
+          tools: composer:v2.2
           coverage: none
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Create and attach ZIP
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Create and attach ZIP
         uses: concrete5-community/gh-package-release-attach@main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           remove-files: |
             composer.json
-            composer.lock
