@@ -102,11 +102,13 @@ abstract class Updater
     /**
      * Set the cache to be used.
      *
+     * @param \Concrete\Core\Cache\Cache|null $cache
+     *
      * @return $this
      */
-    public function setCache(Cache $cache = null)
+    public function setCache($cache = null)
     {
-        $this->cache = $cache;
+        $this->cache = $cache instanceof Cache ? $cache : null;
 
         return $this;
     }
@@ -188,12 +190,13 @@ abstract class Updater
      * @param string $querystring
      * @param string $saveToFilename
      * @param string[] $userAndPassword
+     * @param callable|null $validHttpStatusCodeChecker
      *
      * @throws \Concrete\Package\MaxmindGeolocator\Exception\HttpException
      *
      * @return array
      */
-    protected function performRequest($path, $querystring = '', $saveToFilename = '', array $userAndPassword = [], callable $validHttpStatusCodeChecker = null)
+    protected function performRequest($path, $querystring = '', $saveToFilename = '', array $userAndPassword = [], $validHttpStatusCodeChecker = null)
     {
         $uri = 'https://' . $this->configuration->getHost() . '/' . ltrim($path, '/');
         if ($querystring !== '' && $querystring !== '?') {
@@ -209,10 +212,10 @@ abstract class Updater
         } catch (\Exception $x) {
             throw new HttpException($x->getMessage());
         }
-        if ($validHttpStatusCodeChecker === null) {
-            $ok = 200 <= $response['statusCode'] && $response['statusCode'] < 300;
-        } else {
+        if (is_callable($validHttpStatusCodeChecker)) {
             $ok = $validHttpStatusCodeChecker($response['statusCode']);
+        } else {
+            $ok = 200 <= $response['statusCode'] && $response['statusCode'] < 300;
         }
         if (!$ok) {
             $failureReason = $response['reasonPhrase'];
