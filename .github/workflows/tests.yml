@@ -17,9 +17,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php-version:
-          - "5.5"
-          - "8.4"
+        include:
+          -
+            php-version: "5.5"
+            exclude-paths: |
+              src/Concrete/Task
+          -
+            php-version: "7.3"
+            exclude-paths: ""
+          -
+            php-version: "8.4"
+            exclude-paths: ""
     steps:
       -
         name: Checkout
@@ -37,6 +45,7 @@ jobs:
         uses: mlocati/check-php-syntax@v1
         with:
           fail-on-warnings: true
+          exclude: ${{ matrix.exclude-paths }}
 
   check-development-leftovers:
     name: Check Development Leftovers
