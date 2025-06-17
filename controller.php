@@ -4,13 +4,14 @@ namespace Concrete\Package\MaxmindGeolocator;
 
 use Concrete\Core\Application\Application;
 use Concrete\Core\Backup\ContentImporter;
+use Concrete\Core\Database\EntityManager\Provider\ProviderInterface;
 use Concrete\Core\Command\Task\Manager as TaskManager;
 use Concrete\Core\Package\Package;
 use Exception;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Controller extends Package
+class Controller extends Package implements ProviderInterface
 {
     protected $pkgHandle = 'maxmind_geolocator';
 
@@ -44,6 +45,16 @@ class Controller extends Package
     {
         $this->installXml();
         parent::upgrade();
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @see \Concrete\Core\Database\EntityManager\Provider\ProviderInterface::getDrivers()
+     */
+    public function getDrivers()
+    {
+        return [];
     }
 
     public function on_start()
