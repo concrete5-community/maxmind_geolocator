@@ -17,7 +17,7 @@ class Controller extends Package implements ProviderInterface
 
     protected $appVersionRequired = '8.3.0';
 
-    protected $pkgVersion = '1.3.2';
+    protected $pkgVersion = '1.3.3';
 
     public function getPackageName()
     {
