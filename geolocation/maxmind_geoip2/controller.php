@@ -20,18 +20,7 @@ class Controller extends GeolocatorController
     /**
      * {@inheritdoc}
      *
-     * @see GeolocatorController::renderConfigurationForm()
-     */
-    public function renderConfigurationForm()
-    {
-        parent::renderConfigurationForm();
-        $this->requireAsset('selectize');
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * @see GeolocatorController::saveConfigurationForm()
+     * @see \Concrete\Core\Geolocator\GeolocatorController::saveConfigurationForm()
      */
     public function saveConfigurationForm(array $configuration, ParameterBag $data, ErrorList $error)
     {
@@ -105,7 +94,7 @@ class Controller extends GeolocatorController
     /**
      * {@inheritdoc}
      *
-     * @see GeolocatorController::performGeolocation()
+     * @see \Concrete\Core\Geolocator\GeolocatorController::performGeolocation()
      */
     protected function performGeolocation(AddressInterface $address)
     {
